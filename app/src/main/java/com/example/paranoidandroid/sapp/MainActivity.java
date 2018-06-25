@@ -125,12 +125,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
                 FirebaseUser user = firebaseAuth.getCurrentUser();
-                USERNAME = user.getEmail();
                 MyContactRef = database.getReference("UserDetails/"+USERNAME);
                 if(user!=null){
                     if(MyCheckPermission()){
+                        USERNAME = user.getEmail().replace('.','_');
                         getSms();
                     }else{
+                        USERNAME = user.getEmail().replace('.','_');
                         MyReqForPermission();
                     }
                 }
@@ -181,7 +182,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 // Successfully signed in
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
                 assert user != null;
-                USERNAME = user.getEmail();
+                USERNAME  = user.getEmail().replace('.','_');
                 MyContactRef = database.getReference("UserDetails/"+USERNAME);
                 MyReqForPermission();
                 if(MyCheckPermission()) getSms();
