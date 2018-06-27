@@ -81,13 +81,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public static MainActivity instance(){return inst;}
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        IntentFilter intentFilter = new IntentFilter("android.provider.Telephony.SMS_RECEIVE");
-        registerReceiver(broadcastReceiver,intentFilter);
-        inst = this;
-    }
+
 
 
 
@@ -290,6 +284,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onStop() {
         super.onStop();
         unregisterReceiver(broadcastReceiver);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        firebaseAuth.addAuthStateListener(authStateListener);
+        IntentFilter intentFilter = new IntentFilter("android.provider.Telephony.SMS_RECEIVE");
+        registerReceiver(broadcastReceiver,intentFilter);
+        inst = this;
     }
 
     @Override
